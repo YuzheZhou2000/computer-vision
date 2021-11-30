@@ -9,5 +9,5 @@ YuzheZhou2000/YuzheZhou2000 is a ✨ special ✨ repository because its `README.
 You can click the Preview link to take a look at your changes.
 --->
 
-- 介绍文档：https://bytedance.feishu.cn/docs/doccn7QazraBLwqN9YeDW4gObib#
+- 介绍文档：[计算机视觉小白入门](https://ft91y0ff2f.feishu.cn/docs/doccnDLvixbCLl1XOMUUCSqudnb#)
 
