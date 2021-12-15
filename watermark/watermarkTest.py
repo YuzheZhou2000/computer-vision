@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
-
-import cv2
-import numpy
-
-
+from os import pathsep
 from PIL import Image, ImageDraw, ImageFont
+import traceback
+import numpy
+import cv2
+import math
+import numpy as np
 
-# 在图片上添加水印
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from numpy.core.arrayprint import printoptions
+
+
+def Polar2Cartesian(theata):
+
+    pi = 3.14
+    radian = pi * theata/180
+    return math.tan(radian)
 
 
 def addTextWaterMark(text):
@@ -52,9 +62,633 @@ def addChaneseWaterMark(text):
     cv2.destroyAllWindows()
 
 
-if __name__ == '__main__':
-    str = input('input: ')
-    print('your input is : ', str)
+def addPictureWAterMark():
+    try:
+        # 打开图片
+        img = Image.open('image/demo.jpg')
+        # 加载水印图片
+        waterMark = Image.open('image/iu-lizhien.jpeg')
+        # 复制一个尺寸大小一样的图层
+        img_size = img.size
+        wtm_size = waterMark.size
+        # 保证水印图片的大小小于目标图片大小
+        waterMark.resize(
+            tuple(map(lambda x: int(x * 0.005), waterMark.size)))
+        # 设定水印的位置
+        wtm_position = (img_size[0] - wtm_size[0], img_size[1]-img_size[1])
+        # 新建一个图层
+        layer = Image.new('RGBA', img.size)
+        # 将水印添加到图层
+        layer.paste(waterMark, wtm_position)
+        mark_img = Image.composite(layer, img, layer)
+        mark_img.save('output/newmark.jpg')
+        print('done')
+    except Exception as e:
+        print(traceback.print_exc())
 
-    addChaneseWaterMark(str)
-    print('hi world!')
+
+def drawLine2PictureDemo(imgName):
+    # 加载图片 ori
+    ori = cv2.imread(imgName)
+    theta = 40
+    # 获得原始图像的宽和高
+    width, height = ori.shape[0], ori.shape[1]
+    img = numpy.zeros((height, width))
+    # 直角坐标系下的斜率
+    slope = Polar2Cartesian(theta)
+    print("slope: ", slope)
+    if theta < 90:
+        min_offset = int(0 - slope * width)
+        max_offset = height - 1
+    else:
+        min_offset = 1
+        max_offset = 2 * height - int(slope * width)
+    # 绘图
+    for offset in range(min_offset, max_offset, 30):
+        if theta < 45:
+            for i in range(0, width):
+                y = int(slope * i) + offset
+                if y >= height:
+                    break
+                # idx += 1
+                img[y, i] = 255
+        elif theta <= 90:
+            """
+            x = 1/slop
+            """
+            for i in range(0, height):
+                x = int((i - offset) / slope)
+                if x >= width or x < 0:
+                    continue
+                # idx += 1
+                img[i, x] = 255
+        elif theta <= 135:
+            for i in range(0, height):
+                x = int((i - offset) / slope)
+                if x >= width or x < 0:
+                    continue
+                # idx += 1
+                img[i, x] = 255
+        else:
+            for i in range(0, width):
+                y = int(slope * i) + offset
+                if (y >= height or y < 0) and offset < height:
+                    break
+                if (y >= height or y < 0) and offset >= height:
+                    continue
+                # idx += 1
+                img[y, i] = 255
+     # 保存图片
+    cv2.imwrite('output/writeLine.jpg', img)
+    return img
+
+
+def drawUseOpencv():
+    img = cv2.imread('image/demo.jpg')
+    # shape返回的是一个tuple元组，第一个元素表示图像的高度，第二个表示图像的宽度，第三个表示像素的通道数。
+    size = img.shape  # 700*700*3
+
+    # pt1表示起始位置  pt2 表示结束位置 分别画 直线、矩形、圆、椭圆
+    cv2.line(img, pt1=(50, 30), pt2=(400, 30),
+             color=(30, 30, 30), thickness=0.01)
+
+    # cv2.rectangle(img, pt1=(300, 0), pt2=(500, 150),
+    #               color=(0, 255, 0), thickness=0.1)
+    # cv2.circle(img, center=(400, 60), radius=60,
+    #            color=(0, 255, 255), thickness=1)
+    # cv2.ellipse(img, center=(256, 256), axes=(100, 50), angle=0,
+    #             startAngle=0, endAngle=180, color=(0, 255, 255), thickness=1)
+
+    cv2.imshow('aaa', img)
+    if cv2.waitKey(0) & 0xFF == ord('q'):
+        cv2.destroyAllWindows()
+
+
+def drawUseMatplotlib():
+    # 文件地址
+    img_path = 'image/demo.jpg'
+    # 打开图片
+    img = Image.open(img_path)  # 700*700
+    # print(type(img), img.size)
+
+    im = np.array(img, dtype=np.uint8)
+    print(type(im), im.shape)
+
+    # Create figure and axes
+    fig, ax = plt.subplots(1)
+    # Display the image
+    ax.imshow(im)
+
+    # Create a Rectangle patch
+    """
+        Parameters
+        ----------
+        xy : (float, float)
+            The anchor point.
+        width : float
+            Rectangle width.
+        height : float
+            Rectangle height.
+        angle : float, default: 0
+            Rotation in degrees anti-clockwise about *xy*.
+
+        Other Parameters
+        ----------------
+        **kwargs : `.Patch` properties
+            %(Patch)s
+    """
+    rect = patches.Rectangle(
+        (100, 600), 700, 0, linewidth=2, edgecolor=[0, 0, 0, 0.7], facecolor='none')
+    # Add the patch to the Axes
+    ax.add_patch(rect)
+
+    rect = patches.Rectangle(
+        (60, 200), 40, 0, linewidth=2, edgecolor=[0, 0, 0, 0.7], facecolor='none')
+
+    # Add the patch to the Axes
+    ax.add_patch(rect)
+
+    """
+        Parameters
+        ----------
+        xy : (float, float)
+            xy coordinates of ellipse centre.
+        width : float
+            Total length (diameter) of horizontal axis.
+        height : float
+            Total length (diameter) of vertical axis.
+        angle : float, default: 0
+            Rotation in degrees anti-clockwise.
+
+        Notes
+        -----
+        Valid keyword arguments are:
+
+        %(Patch)s
+    """
+    rect = patches.Ellipse((300, 300), 20, 50, 90, linewidth=2, edgecolor=[
+                           0, 0, 0, 0.3], facecolor='none')
+    ax.add_patch(rect)
+
+    plt.savefig('output/addline.jpg', dpi=1000, bbox_inches="tight")
+    plt.show()
+
+
+def drawWaterMarkGreyOfEllipse(path):
+    '''
+    function:
+        use  matplotlib.patches to make watermark in grey 
+
+    Parameters: 
+        path: path of picture
+
+    return:
+        nil
+    '''
+
+    # Load picture
+    img = Image.open(path)  # 1300*1800
+    im = np.array(img, dtype=np.uint8)  # (1800, 1300, 4)
+    # Create figure and axes
+    fig, ax = plt.subplots(1)
+    # Display the image
+    ax.imshow(im)
+
+    # Create a Circle patch
+    """
+        Parameters
+        ----------
+        xy : (float, float)
+            xy coordinates of ellipse centre.
+        width : float
+            Total length (diameter) of horizontal axis.
+        height : float
+            Total length (diameter) of vertical axis.
+        angle : float, default: 0
+            Rotation in degrees anti-clockwise.
+
+        Notes
+        -----
+        Valid keyword arguments are:
+
+        %(Patch)s
+    """
+
+    # 250个样本圈    linewidth =  0.03
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        for grey in range(0, 25):
+            # 控制灰度 25个等级
+            rect = patches.Ellipse((20+transparent*30, 36+grey*72), 26, 70, 0, linewidth=0.03, edgecolor=[
+                grey/25, grey/25, grey/25, transparent*1.0/10], facecolor='none')
+            ax.add_patch(rect)
+
+    # 分界线
+     # Create a Rectangle patch
+    """
+        Parameters
+        ----------
+        xy : (float, float)
+            The anchor point.
+        width : float
+            Rectangle width.
+        height : float
+            Rectangle height.
+        angle : float, default: 0
+            Rotation in degrees anti-clockwise about *xy*.
+
+        Other Parameters
+        ----------------
+        **kwargs : `.Patch` properties
+            %(Patch)s
+    """
+    rect = patches.Rectangle(
+        (320, 0), 0, 1800, linewidth=0.3, edgecolor=[0, 0, 0, 1], facecolor='none')
+    ax.add_patch(rect)
+
+    # 250个样本圈    linewidth =  0.04
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        for grey in range(0, 25):
+            # 控制灰度 25个等级
+            rect = patches.Ellipse((320+transparent*30, 36+grey*72), 26, 70, 0, linewidth=0.04, edgecolor=[
+                grey/25, grey/25, grey/25, transparent*1.0/10], facecolor='none')
+            ax.add_patch(rect)
+
+    # 分界线
+    rect = patches.Rectangle(
+        (620, 0), 0, 1800, linewidth=0.3, edgecolor=[0, 0, 0, 1], facecolor='none')
+    ax.add_patch(rect)
+
+    # 250个样本圈    linewidth =  0.05
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        for grey in range(0, 25):
+            # 控制灰度 25个等级
+            rect = patches.Ellipse((620+transparent*30, 36+grey*72), 26, 70, 0, linewidth=0.05, edgecolor=[
+                grey/25, grey/25, grey/25, transparent*1.0/10], facecolor='none')
+            ax.add_patch(rect)
+
+    # 分界线
+    rect = patches.Rectangle(
+        (920, 0), 0, 1800, linewidth=0.3, edgecolor=[0, 0, 0, 1], facecolor='none')
+    ax.add_patch(rect)
+
+    # 250个样本圈    linewidth =  0.06
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        for grey in range(0, 25):
+            # 控制灰度 25个等级
+            rect = patches.Ellipse((920+transparent*30, 36+grey*72), 26, 70, 0, linewidth=0.06, edgecolor=[
+                grey/25, grey/25, grey/25, transparent*1.0/10], facecolor='none')
+            ax.add_patch(rect)
+
+    # 保存图片
+    # 取消坐标轴显示
+    plt.axis('off')
+    plt.savefig('output/addEllipse.jpg', dpi=2000, bbox_inches="tight")
+    # plt.show()
+    print('drawWaterMarkGreyOfEllipse done')
+    return
+
+
+def drawWaterMarkColorOfEllipse(path):
+    '''
+    function:
+        use  matplotlib.patches to make watermark in color
+
+    Parameters: 
+        path: path of picture
+
+    return:
+        nil
+    '''
+    a = 0.1
+    # Load picture
+    img = Image.open(path)  # 1300*1800
+    im = np.array(img, dtype=np.uint8)  # (1800, 1300, 4)
+    # Create figure and axes
+    fig, ax = plt.subplots(1)
+    # Display the image
+    ax.imshow(im)
+
+    # Create a Circle patch
+    """
+        Parameters
+        ----------
+        xy : (float, float)
+            xy coordinates of ellipse centre.
+        width : float
+            Total length (diameter) of horizontal axis.
+        height : float
+            Total length (diameter) of vertical axis.
+        angle : float, default: 0
+            Rotation in degrees anti-clockwise.
+
+        Notes
+        -----
+        Valid keyword arguments are:
+
+        %(Patch)s
+    """
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 36), 40, 50, 0, linewidth=0.1, edgecolor=[
+                               200/255, 200/255, 169/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 36), 40, 50, 0, linewidth=0.1, edgecolor=[
+                               249/255, 205/255, 173/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 96), 40, 50, 0, linewidth=0.1, edgecolor=[
+                               131/255, 175/255, 151/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 96), 40, 50, 0, linewidth=0.1, edgecolor=[
+                               182/255, 194/255, 154/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 156), 40, 50, 0, linewidth=0.1, edgecolor=[
+                               178/255, 200/255, 187/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 156), 40, 50, 0, linewidth=0.1, edgecolor=[
+                               201/255, 186/255, 131/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 216), 40, 50, 0, linewidth=a, edgecolor=[
+                               160/255, 191/255, 124/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 216), 40, 50, 0, linewidth=0.1, edgecolor=[
+                               179/255, 168/255, 150/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 286), 40, 50, 0, linewidth=a, edgecolor=[
+                               113/255, 150/255, 159/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 286), 40, 50, 0, linewidth=a, edgecolor=[
+                               225/255, 233/255, 220/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 346), 40, 50, 0, linewidth=a, edgecolor=[
+                               204/255, 202/255, 169/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 346), 40, 50, 0, linewidth=a, edgecolor=[
+                               227/255, 230/255, 195/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 406), 40, 50, 0, linewidth=a, edgecolor=[
+                               219/255, 208/255, 167/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 406), 40, 50, 0, linewidth=a, edgecolor=[
+                               179/255, 168/255, 150/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 466), 40, 50, 0, linewidth=a, edgecolor=[
+                               205/255, 164/255, 158/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 466), 40, 50, 0, linewidth=a, edgecolor=[
+                               210/255, 188/255, 167/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 526), 40, 50, 0, linewidth=a, edgecolor=[
+                               189/255, 172/255, 156/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 526), 40, 50, 0, linewidth=a, edgecolor=[
+                               199/255, 237/255, 233/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 586), 40, 50, 0, linewidth=a, edgecolor=[
+                               243/255, 244/255, 246/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 586), 40, 50, 0, linewidth=a, edgecolor=[
+                               196/255, 226/255, 216/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 646), 40, 50, 0, linewidth=a, edgecolor=[
+                               166/255, 137/255, 124/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 646), 40, 50, 0, linewidth=a, edgecolor=[
+                               219/255, 207/255, 202/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 706), 40, 50, 0, linewidth=a, edgecolor=[
+                               205/255, 179/255, 128/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 706), 40, 50, 0, linewidth=a, edgecolor=[
+                               170/255, 138/255, 87/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 766), 40, 50, 0, linewidth=a, edgecolor=[
+                               114/255, 111/255, 128/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 766), 40, 50, 0, linewidth=a, edgecolor=[
+                               178/255, 190/255, 126/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 826), 40, 50, 0, linewidth=a, edgecolor=[
+                               113/255, 175/255, 164/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 826), 40, 50, 0, linewidth=a, edgecolor=[
+                               229/255, 190/255, 157/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 886), 40, 50, 0, linewidth=a, edgecolor=[
+                               101/255, 147/255, 74/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 886), 40, 50, 0, linewidth=a, edgecolor=[
+                               160/255, 191/255, 124/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 946), 40, 50, 0, linewidth=a, edgecolor=[
+                               205/255, 201/255, 125/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 946), 40, 50, 0, linewidth=a, edgecolor=[
+                               229/255, 190/255, 157/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 1006), 40, 50, 0, linewidth=a, edgecolor=[
+                               222/255, 156/255, 83/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 1006), 40, 50, 0, linewidth=a, edgecolor=[
+                               222/255, 211/255, 140/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 1106), 40, 50, 0, linewidth=a, edgecolor=[
+                               137/255, 190/255, 178/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 1106), 40, 50, 0, linewidth=a, edgecolor=[
+                               201/255, 186/255, 131/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 1206), 40, 50, 0, linewidth=a, edgecolor=[
+                               174/255, 221/255, 129/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 1206), 40, 50, 0, linewidth=a, edgecolor=[
+                               138/255, 171/255, 202/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 1306), 40, 50, 0, linewidth=a, edgecolor=[
+                               167/255, 220/255, 224/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 1306), 40, 50, 0, linewidth=a, edgecolor=[
+                               178/255, 190/255, 126/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 1406), 40, 50, 0, linewidth=a, edgecolor=[
+                               179/255, 214/255, 110/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 1406), 40, 50, 0, linewidth=a, edgecolor=[
+                               96/255, 143/255, 159/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 1506), 40, 50, 0, linewidth=a, edgecolor=[
+                               178/255, 200/255, 187/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 1506), 40, 50, 0, linewidth=a, edgecolor=[
+                               158/255, 157/255, 131/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((50+transparent*50, 1606), 40, 50, 0, linewidth=a, edgecolor=[
+                               173/255, 195/255, 192/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    for transparent in range(0, 10):
+        # 控制透明度 十个等级
+        rect = patches.Ellipse((600+transparent*50, 1606), 40, 50, 0, linewidth=a, edgecolor=[
+                               230/255, 180/255, 80/255, transparent * 0.1], facecolor='none')
+        ax.add_patch(rect)
+
+    # 保存图片
+    # 取消坐标轴显示
+    plt.axis('off')
+    plt.savefig('output/addEllipse2.jpg', dpi=2000, bbox_inches="tight")
+    # plt.show()
+    print('drawWaterMarkColorOfEllipse done')
+    return
+
+
+def test():
+    # a = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    # print(a.shape)
+
+    for item1 in range(0, 4):
+        for item2 in range(0, 4):
+            for item3 in range(0, 4):
+                print(item1, item2, item3)
+
+
+if __name__ == '__main__':
+    # test()
+    path = 'image/org.jpg'
+    # drawWaterMarkGreyOfEllipse(path)
+    drawWaterMarkColorOfEllipse(path)
